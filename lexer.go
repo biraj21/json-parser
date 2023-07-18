@@ -73,7 +73,7 @@ func Lex(s string) []Token {
 			colNo++
 			runes = runes[1:]
 		} else {
-			log.Fatalf("invalid character '%s' at line %d, column %d\n", string(char), lineNo, colNo)
+			log.Fatalf("unexpected character '%s' at line %d, column %d\n", string(char), lineNo, colNo)
 		}
 	}
 
