@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 )
@@ -20,10 +19,5 @@ func main() {
 	}
 
 	tokens := Lex(string(contents))
-
-	for _, token := range tokens {
-		fmt.Println(token)
-	}
-
 	Parse(tokens)
 }
