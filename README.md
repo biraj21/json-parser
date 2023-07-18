@@ -1,8 +1,8 @@
 # JSON Parser in Go
 
-My implementaion of a JSON parser in Go. It returns exit code 0 for a valid JSON file, otherwise it exits with code 1 &s prints an error message with line & column number.
+My implementaion of a JSON parser in Go. It returns exit code 0 for a valid JSON file, otherwise exits with code 1 and prints an error message with line & column number.
 
-For example, if the input file is
+Example: for the following input file
 
 ```
 {
@@ -14,7 +14,7 @@ For example, if the input file is
 }
 ```
 
-then it would print
+it would print
 
 ```
 error: unexpected character 'F' at line 3, column 11
@@ -29,11 +29,11 @@ json-parser FILE
 ## Build & Run
 
 ```bash
-go build FILE
+go build
 ```
 
 ```bash
-./json-parser
+./json-parser FILE
 ```
 
 ## Or just run
