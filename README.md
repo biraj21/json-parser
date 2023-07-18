@@ -10,5 +10,4 @@ Why implement a JSON parser?
 
 ### Acknowledgements:
 
-I wasn't clear on how to get started cuz I had no idea as to how I should implement a Lexer & Parser. 
-[@eatonphil](https://github.com/eatonphil)'s [blog post](https://notes.eatonphil.com/writing-a-simple-json-parser.html) on the topic helped me a lot. Do check it out!
+I didn't know how to get started with this cuz I had no idea on how to implement a Lexer & Parser. [@eatonphil](https://github.com/eatonphil)'s [blog post](https://notes.eatonphil.com/writing-a-simple-json-parser.html) on the topic helped me a lot. Do check it out!
