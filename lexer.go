@@ -6,35 +6,11 @@ import (
 	"unicode"
 )
 
-type TokenKind int
-
-const (
-	tokenBoolean   TokenKind = iota
-	typeJsonSyntax TokenKind = iota
-	tokenString    TokenKind = iota
-	tokenNull      TokenKind = iota
-	tokenNumber    TokenKind = iota
-)
-
-type Token struct {
-	kind  TokenKind
-	value string
-}
-
 var (
-	JsonTrue  = []rune("true")
-	JsonFalse = []rune("false")
-	JsonNull  = []rune("null")
+	jsonTrue  = []rune("true")
+	jsonFalse = []rune("false")
+	jsonNull  = []rune("null")
 )
-
-var JsonSyntaxTokens = map[rune]struct{}{
-	'{': {},
-	'}': {},
-	':': {},
-	'[': {},
-	']': {},
-	',': {},
-}
 
 func Lex(s string) []Token {
 	tokens := []Token{}
@@ -63,37 +39,37 @@ func Lex(s string) []Token {
 		var token Token
 		var ok bool
 
-		token, runes, ok = lexString(runes)
+		token, runes, ok = lexString(runes, lineNo, colNo)
 		if ok {
 			tokens = append(tokens, token)
 			colNo += len(token.value) + 2 // +2 for quotes
 			continue
 		}
 
-		token, runes, ok = lexBoolean(runes)
+		token, runes, ok = lexBoolean(runes, lineNo, colNo)
 		if ok {
 			tokens = append(tokens, token)
 			colNo += len(token.value)
 			continue
 		}
 
-		token, runes, ok = lexNull(runes)
+		token, runes, ok = lexNull(runes, lineNo, colNo)
 		if ok {
 			tokens = append(tokens, token)
 			colNo += len(token.value)
 			continue
 		}
 
-		token, runes, ok = lexNumber(runes)
+		token, runes, ok = lexNumber(runes, lineNo, colNo)
 		if ok {
 			tokens = append(tokens, token)
 			colNo += len(token.value)
 			continue
 		}
 
-		_, ok = JsonSyntaxTokens[char]
+		_, ok = JsonSyntaxChars[char]
 		if ok {
-			tokens = append(tokens, Token{typeJsonSyntax, string(char)})
+			tokens = append(tokens, Token{JsonSyntax, string(char), lineNo, colNo})
 			colNo++
 			runes = runes[1:]
 		} else {
@@ -104,7 +80,7 @@ func Lex(s string) []Token {
 	return tokens
 }
 
-func lexString(runes []rune) (Token, []rune, bool) {
+func lexString(runes []rune, lineNo, colNo int) (Token, []rune, bool) {
 	if runes[0] != '"' {
 		return Token{}, runes, false
 	}
@@ -113,7 +89,7 @@ func lexString(runes []rune) (Token, []rune, bool) {
 
 	for i, char := range runes {
 		if char == '"' {
-			return Token{tokenString, string(runes[:i])}, runes[i+1:], true
+			return Token{JsonString, string(runes[:i]), lineNo, colNo}, runes[i+1:], true
 		}
 	}
 
@@ -121,31 +97,32 @@ func lexString(runes []rune) (Token, []rune, bool) {
 	return Token{}, runes, true
 }
 
-func lexBoolean(runes []rune) (Token, []rune, bool) {
-	if CompareRuneSlices(runes, JsonTrue, len(JsonTrue)) {
-		return Token{tokenBoolean, string(runes[:len(JsonTrue)])}, runes[len(JsonTrue):], true
+func lexBoolean(runes []rune, lineNo, colNo int) (Token, []rune, bool) {
+	if CompareRuneSlices(runes, jsonTrue, len(jsonTrue)) {
+		return Token{JsonBoolean, string(runes[:len(jsonTrue)]), lineNo, colNo}, runes[len(jsonTrue):], true
 	}
 
-	if CompareRuneSlices(runes, JsonFalse, len(JsonFalse)) {
-		return Token{tokenBoolean, string(runes[:len(JsonFalse)])}, runes[len(JsonFalse):], true
+	if CompareRuneSlices(runes, jsonFalse, len(jsonFalse)) {
+		return Token{JsonBoolean, string(runes[:len(jsonFalse)]), lineNo, colNo}, runes[len(jsonFalse):], true
 	}
 
 	return Token{}, runes, false
 }
 
-func lexNull(runes []rune) (Token, []rune, bool) {
-	if CompareRuneSlices(runes, JsonNull, len(JsonNull)) {
-		return Token{tokenNull, string(runes[:len(JsonNull)])}, runes[len(JsonNull):], true
+func lexNull(runes []rune, lineNo, colNo int) (Token, []rune, bool) {
+	if CompareRuneSlices(runes, jsonNull, len(jsonNull)) {
+		return Token{JsonNull, string(runes[:len(jsonNull)]), lineNo, colNo}, runes[len(jsonNull):], true
 	}
+
 	return Token{}, runes, false
 }
 
-func lexNumber(runes []rune) (Token, []rune, bool) {
+func lexNumber(runes []rune, lineNo, colNo int) (Token, []rune, bool) {
 	if !unicode.IsDigit(runes[0]) {
 		return Token{}, runes, false
 	}
 
-	var endsAt int = len(runes)
+	var endsAt int = len(runes) - 1
 	for i, char := range runes {
 		if !unicode.IsDigit(char) && char != 'e' && char != '.' {
 			endsAt = i - 1
@@ -158,5 +135,5 @@ func lexNumber(runes []rune) (Token, []rune, bool) {
 		log.Fatalf("invalid number %s", tokenValue)
 	}
 
-	return Token{tokenNumber, tokenValue}, runes[endsAt+1:], true
+	return Token{JsonNumber, tokenValue, lineNo, colNo}, runes[endsAt+1:], true
 }
