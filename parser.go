@@ -28,58 +28,92 @@ func Parse(tokens []Token) {
 }
 
 func parseObject(tokens []Token) []Token {
+	if len(tokens) == 0 {
+		log.Fatalf("expected a key or an end-of-object brace '}'")
+	}
+
 	token := tokens[0]
 	if token.kind == JsonSyntax && token.value == "}" {
 		return tokens[1:]
 	}
 
+	const (
+		checkKey   = iota
+		checkColon = iota
+		checkValue = iota
+		checkEnd   = iota
+	)
+
+	var check = checkKey
+
 	for len(tokens) > 0 {
-		// key
 		token = tokens[0]
-		if token.kind != JsonString {
-			raiseTokenError(token)
-		}
 
-		tokens = tokens[1:]
-
-		// colon
-		token = tokens[0]
-		if token.kind != JsonSyntax || (token.kind == JsonSyntax && token.value != ":") {
-			raiseTokenError(token)
-		}
-
-		tokens = tokens[1:]
-
-		// value
-		token = tokens[0]
-		if token.kind == JsonSyntax {
-			if token.value == "{" {
-				tokens = parseObject(tokens[1:])
-			} else if token.value == "[" {
-				tokens = parseArray(tokens[1:])
-			} else {
+		switch check {
+		case checkKey:
+			if token.kind != JsonString {
 				raiseTokenError(token)
 			}
-		} else {
-			tokens = tokens[1:]
-		}
 
-		// , or }
-		token = tokens[0]
-		if token.kind == JsonSyntax {
+			tokens = tokens[1:]
+			check = checkColon
+		case checkColon:
+			if token.kind != JsonSyntax || (token.kind == JsonSyntax && token.value != ":") {
+				raiseTokenError(token)
+			}
+
+			tokens = tokens[1:]
+			check = checkValue
+		case checkValue:
+			if token.kind == JsonSyntax {
+				if token.value == "{" {
+					tokens = parseObject(tokens[1:])
+				} else if token.value == "[" {
+					tokens = parseArray(tokens[1:])
+				} else {
+					raiseTokenError(token)
+				}
+			} else {
+				tokens = tokens[1:]
+			}
+
+			check = checkEnd
+		case checkEnd:
+			if token.kind != JsonSyntax {
+				raiseTokenError(token)
+			}
+
 			if token.value == "," {
 				tokens = tokens[1:]
 			} else if token.value == "}" {
 				return tokens[1:]
+			} else {
+				raiseTokenError(token)
 			}
+
+			check = checkKey
 		}
 	}
 
-	log.Fatal("expected end-of-object brace '}'")
+	switch check {
+	case checkKey:
+		log.Fatal("expected a key string")
+	case checkColon:
+		log.Fatal("expected a colon ':'")
+	case checkValue:
+		log.Fatal("expexted a value")
+	default:
+		log.Fatal("expected end-of-object brace '}'")
+	}
+
 	return []Token{}
 }
 
 func parseArray(tokens []Token) []Token {
+	if len(tokens) == 0 {
+		log.Fatalf("expected an element or an end-of-array bracket ']'")
+	}
+
 	token := tokens[0]
 	if token.kind == JsonSyntax && token.value == "]" {
 		return tokens[1:]
