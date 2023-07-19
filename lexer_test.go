@@ -67,3 +67,22 @@ func TestLexInvalidJson(t *testing.T) {
 	_, err := Lex(json)
 	assert.EqualError(t, err, `unexpected character ''' at line 7, column 13`)
 }
+
+func TestLexInvalidEscapedChar(t *testing.T) {
+	_, err := Lex(`{"key": "\cvalue"}`)
+	assert.EqualError(t, err, `invalid escaped character '\c' at line 1, col 10`)
+}
+
+func TestLexValidEscapedChar(t *testing.T) {
+	expectedTokens := []Token{
+		{JsonSyntax, "{", 1, 1},
+		{JsonString, "key", 1, 2},
+		{JsonSyntax, ":", 1, 7},
+		{JsonString, `\"escaped double quotes\"`, 1, 9},
+		{JsonSyntax, "}", 1, 36},
+	}
+
+	tokens, err := Lex(`{"key": "\"escaped double quotes\""}`)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedTokens, tokens)
+}
