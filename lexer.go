@@ -1,7 +1,8 @@
 package main
 
 import (
-	"log"
+	"errors"
+	"fmt"
 	"regexp"
 	"unicode"
 )
@@ -12,15 +13,13 @@ var (
 	jsonNull  = []rune("null")
 )
 
-func Lex(s string) []Token {
+func Lex(s string) ([]Token, error) {
 	tokens := []Token{}
 
 	// for tracking line & column numbers to show to the user in case of error
 	lineNo, colNo := 1, 1
 
-	runes := []rune(s)
-
-	for len(runes) > 0 {
+	for runes := []rune(s); len(runes) > 0; {
 		char := runes[0]
 
 		// ignore white spaces
@@ -36,90 +35,97 @@ func Lex(s string) []Token {
 			continue
 		}
 
-		var token Token
-		var ok bool
+		token := Token{}
+		var err error
 
-		token, runes, ok = lexString(runes, lineNo, colNo)
-		if ok {
+		token, runes, err = lexString(runes, lineNo, colNo)
+		if err != nil {
+			return []Token{}, err
+		} else if token != (Token{}) {
 			tokens = append(tokens, token)
 			colNo += len(token.value) + 2 // +2 for quotes
 			continue
 		}
 
-		token, runes, ok = lexBoolean(runes, lineNo, colNo)
-		if ok {
+		token, runes, err = lexBoolean(runes, lineNo, colNo)
+		if err != nil {
+			return []Token{}, err
+		} else if token != (Token{}) {
 			tokens = append(tokens, token)
 			colNo += len(token.value)
 			continue
 		}
 
-		token, runes, ok = lexNull(runes, lineNo, colNo)
-		if ok {
+		token, runes, err = lexNull(runes, lineNo, colNo)
+		if err != nil {
+			return []Token{}, err
+		} else if token != (Token{}) {
 			tokens = append(tokens, token)
 			colNo += len(token.value)
 			continue
 		}
 
-		token, runes, ok = lexNumber(runes, lineNo, colNo)
-		if ok {
+		token, runes, err = lexNumber(runes, lineNo, colNo)
+		if err != nil {
+			return []Token{}, err
+		} else if token != (Token{}) {
 			tokens = append(tokens, token)
 			colNo += len(token.value)
 			continue
 		}
 
-		_, ok = JsonSyntaxChars[char]
+		_, ok := JsonSyntaxChars[char]
 		if ok {
 			tokens = append(tokens, Token{JsonSyntax, string(char), lineNo, colNo})
 			colNo++
 			runes = runes[1:]
 		} else {
-			log.Fatalf("unexpected character '%s' at line %d, column %d\n", string(char), lineNo, colNo)
+			return tokens, fmt.Errorf("unexpected character '%s' at line %d, column %d", string(char), lineNo, colNo)
 		}
 	}
 
-	return tokens
+	return tokens, nil
 }
 
-func lexString(runes []rune, lineNo, colNo int) (Token, []rune, bool) {
+func lexString(runes []rune, lineNo, colNo int) (Token, []rune, error) {
 	if runes[0] != '"' {
-		return Token{}, runes, false
+		return Token{}, runes, nil
 	}
 
 	runes = runes[1:]
 
 	for i, char := range runes {
 		if char == '"' {
-			return Token{JsonString, string(runes[:i]), lineNo, colNo}, runes[i+1:], true
+			return Token{JsonString, string(runes[:i]), lineNo, colNo}, runes[i+1:], nil
 		}
 	}
 
-	log.Fatal("expected end-of-string quote")
-	return Token{}, runes, true
+	return Token{}, runes, errors.New("expected end-of-string quote")
 }
 
-func lexBoolean(runes []rune, lineNo, colNo int) (Token, []rune, bool) {
+func lexBoolean(runes []rune, lineNo, colNo int) (Token, []rune, error) {
 	if CompareRuneSlices(runes, jsonTrue, len(jsonTrue)) {
-		return Token{JsonBoolean, string(runes[:len(jsonTrue)]), lineNo, colNo}, runes[len(jsonTrue):], true
+		return Token{JsonBoolean, string(runes[:len(jsonTrue)]), lineNo, colNo}, runes[len(jsonTrue):], nil
 	}
 
 	if CompareRuneSlices(runes, jsonFalse, len(jsonFalse)) {
-		return Token{JsonBoolean, string(runes[:len(jsonFalse)]), lineNo, colNo}, runes[len(jsonFalse):], true
+		return Token{JsonBoolean, string(runes[:len(jsonFalse)]), lineNo, colNo}, runes[len(jsonFalse):], nil
 	}
 
-	return Token{}, runes, false
+	return Token{}, runes, nil
 }
 
-func lexNull(runes []rune, lineNo, colNo int) (Token, []rune, bool) {
+func lexNull(runes []rune, lineNo, colNo int) (Token, []rune, error) {
 	if CompareRuneSlices(runes, jsonNull, len(jsonNull)) {
-		return Token{JsonNull, string(runes[:len(jsonNull)]), lineNo, colNo}, runes[len(jsonNull):], true
+		return Token{JsonNull, string(runes[:len(jsonNull)]), lineNo, colNo}, runes[len(jsonNull):], nil
 	}
 
-	return Token{}, runes, false
+	return Token{}, runes, nil
 }
 
-func lexNumber(runes []rune, lineNo, colNo int) (Token, []rune, bool) {
+func lexNumber(runes []rune, lineNo, colNo int) (Token, []rune, error) {
 	if !unicode.IsDigit(runes[0]) {
-		return Token{}, runes, false
+		return Token{}, runes, nil
 	}
 
 	var endsAt int = len(runes) - 1
@@ -132,8 +138,8 @@ func lexNumber(runes []rune, lineNo, colNo int) (Token, []rune, bool) {
 
 	tokenValue := string(runes[:endsAt+1])
 	if !regexp.MustCompile(`^\d+(?:\.\d+)?(?:e\d+)?$`).MatchString(tokenValue) {
-		log.Fatalf("invalid number %s", tokenValue)
+		return Token{}, []rune{}, fmt.Errorf("invalid number %s", tokenValue)
 	}
 
-	return Token{JsonNumber, tokenValue, lineNo, colNo}, runes[endsAt+1:], true
+	return Token{JsonNumber, tokenValue, lineNo, colNo}, runes[endsAt+1:], nil
 }

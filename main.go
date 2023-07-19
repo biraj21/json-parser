@@ -18,6 +18,13 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	tokens := Lex(string(contents))
-	Parse(tokens)
+	tokens, err := Lex(string(contents))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = Parse(tokens)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

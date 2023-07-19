@@ -1,40 +1,50 @@
 package main
 
 import (
-	"log"
+	"errors"
+	"fmt"
 )
 
-func Parse(tokens []Token) {
+func Parse(tokens []Token) error {
 	if len(tokens) == 0 {
-		log.Fatalf("empty JSON string")
+		return errors.New("empty JSON string")
 	}
 
 	token := tokens[0]
 	if token.kind != JsonSyntax {
-		raiseTokenError(token)
+		return unexpectedTokenError(token)
 	}
 
+	var err error
 	if token.value == "{" {
-		tokens = parseObject(tokens[1:])
+		tokens, err = parseObject(tokens[1:])
+		if err != nil {
+			return err
+		}
 	} else if token.value == "[" {
-		tokens = parseArray(tokens[1:])
+		tokens, err = parseArray(tokens[1:])
+		if err != nil {
+			return err
+		}
 	} else {
-		raiseTokenError(token)
+		return unexpectedTokenError(token)
 	}
 
 	if len(tokens) > 0 {
-		raiseTokenError(tokens[0])
+		return unexpectedTokenError(tokens[0])
 	}
+
+	return nil
 }
 
-func parseObject(tokens []Token) []Token {
+func parseObject(tokens []Token) ([]Token, error) {
 	if len(tokens) == 0 {
-		log.Fatalf("expected a key or an end-of-object brace '}'")
+		return []Token{}, errors.New("expected a key or an end-of-object brace '}'")
 	}
 
 	token := tokens[0]
 	if token.kind == JsonSyntax && token.value == "}" {
-		return tokens[1:]
+		return tokens[1:], nil
 	}
 
 	const (
@@ -43,23 +53,23 @@ func parseObject(tokens []Token) []Token {
 		checkValue = iota
 		checkEnd   = iota
 	)
-
 	var check = checkKey
 
+	var err error
 	for len(tokens) > 0 {
 		token = tokens[0]
 
 		switch check {
 		case checkKey:
 			if token.kind != JsonString {
-				raiseTokenError(token)
+				return []Token{}, unexpectedTokenError(token)
 			}
 
 			tokens = tokens[1:]
 			check = checkColon
 		case checkColon:
 			if token.kind != JsonSyntax || (token.kind == JsonSyntax && token.value != ":") {
-				raiseTokenError(token)
+				return []Token{}, unexpectedTokenError(token)
 			}
 
 			tokens = tokens[1:]
@@ -67,11 +77,17 @@ func parseObject(tokens []Token) []Token {
 		case checkValue:
 			if token.kind == JsonSyntax {
 				if token.value == "{" {
-					tokens = parseObject(tokens[1:])
+					tokens, err = parseObject(tokens[1:])
+					if err != nil {
+						return []Token{}, err
+					}
 				} else if token.value == "[" {
-					tokens = parseArray(tokens[1:])
+					tokens, err = parseArray(tokens[1:])
+					if err != nil {
+						return []Token{}, err
+					}
 				} else {
-					raiseTokenError(token)
+					return []Token{}, unexpectedTokenError(token)
 				}
 			} else {
 				tokens = tokens[1:]
@@ -80,15 +96,15 @@ func parseObject(tokens []Token) []Token {
 			check = checkEnd
 		case checkEnd:
 			if token.kind != JsonSyntax {
-				raiseTokenError(token)
+				return []Token{}, unexpectedTokenError(token)
 			}
 
 			if token.value == "," {
 				tokens = tokens[1:]
 			} else if token.value == "}" {
-				return tokens[1:]
+				return tokens[1:], nil
 			} else {
-				raiseTokenError(token)
+				return []Token{}, unexpectedTokenError(token)
 			}
 
 			check = checkKey
@@ -97,60 +113,69 @@ func parseObject(tokens []Token) []Token {
 
 	switch check {
 	case checkKey:
-		log.Fatal("expected a key string")
+		err = errors.New("expected a key string")
 	case checkColon:
-		log.Fatal("expected a colon ':'")
+		err = errors.New("expected a colon ':'")
 	case checkValue:
-		log.Fatal("expexted a value")
+		err = errors.New("expexted a value")
 	default:
-		log.Fatal("expected end-of-object brace '}'")
+		err = errors.New("expected end-of-object brace '}'")
 	}
 
-	return []Token{}
+	return []Token{}, err
 }
 
-func parseArray(tokens []Token) []Token {
+func parseArray(tokens []Token) ([]Token, error) {
 	if len(tokens) == 0 {
-		log.Fatalf("expected an element or an end-of-array bracket ']'")
+		return []Token{}, errors.New("expected an element or an end-of-array bracket ']'")
 	}
 
 	token := tokens[0]
 	if token.kind == JsonSyntax && token.value == "]" {
-		return tokens[1:]
+		return tokens[1:], nil
 	}
 
 	prevWasElement := false // to know if previous token was a valid array element or not
+
+	var err error
 
 	for len(tokens) > 0 {
 		token = tokens[0]
 
 		if token.kind == JsonSyntax {
 			if token.value == "[" && !prevWasElement {
-				tokens = parseArray(tokens[1:])
+				tokens, err = parseArray(tokens[1:])
+				if err != nil {
+					return []Token{}, err
+				}
+
 				prevWasElement = true
 			} else if token.value == "{" && !prevWasElement {
-				tokens = parseObject(tokens[1:])
+				tokens, err = parseObject(tokens[1:])
+				if err != nil {
+					return []Token{}, err
+				}
+
 				prevWasElement = true
 			} else if token.value == "]" && prevWasElement {
-				return tokens[1:]
+				return tokens[1:], nil
 			} else if token.value == "," && prevWasElement {
 				prevWasElement = false
 				tokens = tokens[1:]
 			} else {
-				raiseTokenError(token)
+				return []Token{}, unexpectedTokenError(token)
 			}
 		} else if prevWasElement {
-			raiseTokenError(token)
+			return []Token{}, unexpectedTokenError(token)
 		} else {
 			prevWasElement = true
 			tokens = tokens[1:]
 		}
 	}
 
-	log.Fatal("expected end-of-array bracket ']'")
-	return []Token{}
+	return []Token{}, errors.New("expected end-of-array bracket ']'")
 }
 
-func raiseTokenError(token Token) {
-	log.Fatalf("unexpected %s token '%s' at line %d, column %d", GetTokenKind(token.kind), token.value, token.lineNo, token.colNo)
+func unexpectedTokenError(token Token) error {
+	return fmt.Errorf("unexpected %s token '%s' at line %d, column %d", GetTokenKind(token.kind), token.value, token.lineNo, token.colNo)
 }
