@@ -6,7 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const json = `{
+func TestLexValidJson(t *testing.T) {
+	const json = `{
   "key": "value",
   "key-n": 101,
   "key-o": {
@@ -15,7 +16,6 @@ const json = `{
   "key-l": ["list value"]
 }`
 
-func TestLex(t *testing.T) {
 	expectedTokens := []Token{
 		{JsonSyntax, "{", 1, 1},
 
@@ -49,7 +49,21 @@ func TestLex(t *testing.T) {
 		{JsonSyntax, "}", 8, 1},
 	}
 
-	tokens := Lex(json)
-
+	tokens, err := Lex(json)
+	assert.NoError(t, err)
 	assert.Equal(t, expectedTokens, tokens)
+}
+
+func TestLexInvalidJson(t *testing.T) {
+	const json = `{
+  "key": "value",
+  "key-n": 101,
+  "key-o": {
+    "inner key": "inner value"
+  },
+  "key-l": ['list value']
+}`
+
+	_, err := Lex(json)
+	assert.EqualError(t, err, `unexpected character ''' at line 7, column 13`)
 }
