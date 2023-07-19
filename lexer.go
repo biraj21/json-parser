@@ -94,8 +94,19 @@ func lexString(runes []rune, lineNo, colNo int) (Token, []rune, error) {
 
 	runes = runes[1:]
 
+	escaped := false
+
 	for i, char := range runes {
-		if char == '"' {
+		if escaped {
+			switch char {
+			case 'b', 'f', 'n', 'r', 't', '\\', '"':
+				escaped = false
+			default:
+				return Token{}, runes, fmt.Errorf("invalid escaped character '\\%s' at line %d, col %d", string(char), lineNo, i+colNo)
+			}
+		} else if char == '\\' {
+			escaped = true
+		} else if char == '"' {
 			return Token{JsonString, string(runes[:i]), lineNo, colNo}, runes[i+1:], nil
 		}
 	}
@@ -138,7 +149,7 @@ func lexNumber(runes []rune, lineNo, colNo int) (Token, []rune, error) {
 
 	tokenValue := string(runes[:endsAt+1])
 	if !regexp.MustCompile(`^\d+(?:\.\d+)?(?:e\d+)?$`).MatchString(tokenValue) {
-		return Token{}, []rune{}, fmt.Errorf("invalid number %s", tokenValue)
+		return Token{}, runes, fmt.Errorf("invalid number %s", tokenValue)
 	}
 
 	return Token{JsonNumber, tokenValue, lineNo, colNo}, runes[endsAt+1:], nil
