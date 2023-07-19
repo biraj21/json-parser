@@ -18,16 +18,14 @@ func Parse(tokens []Token) error {
 	var err error
 	if token.value == "{" {
 		tokens, err = parseObject(tokens[1:])
-		if err != nil {
-			return err
-		}
 	} else if token.value == "[" {
 		tokens, err = parseArray(tokens[1:])
-		if err != nil {
-			return err
-		}
 	} else {
 		return unexpectedTokenError(token)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	if len(tokens) > 0 {

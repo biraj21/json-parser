@@ -15,6 +15,7 @@ func TestParseValidJson(t *testing.T) {
     },
     "key-l": ["list value"]
   }`
+
 	tokens, err := Lex(validJson)
 	assert.Equal(t, err, nil)
 
