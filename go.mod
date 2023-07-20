@@ -1,4 +1,4 @@
-module cc/json-parser
+module github.com/biraj21/json-parser
 
 go 1.20
 
