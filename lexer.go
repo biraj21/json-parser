@@ -141,7 +141,7 @@ func lexNumber(runes []rune, lineNo, colNo int) (Token, []rune, error) {
 
 	var endsAt int = len(runes) - 1
 	for i, char := range runes {
-		if !unicode.IsDigit(char) && char != 'e' && char != '.' && char != '-' {
+		if !unicode.IsDigit(char) && char != 'e' && char != 'E' && char != '.' && char != '-' {
 			endsAt = i - 1
 			break
 		}
