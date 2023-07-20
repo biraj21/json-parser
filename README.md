@@ -26,6 +26,12 @@ error: unexpected character 'F' at line 3, column 11
 json-parser FILE
 ```
 
+## Install dependencies
+
+```bash
+go get .
+```
+
 ## Build & Run
 
 ```bash
