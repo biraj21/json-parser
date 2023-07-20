@@ -99,7 +99,7 @@ func lexString(runes []rune, lineNo, colNo int) (Token, []rune, error) {
 	for i, char := range runes {
 		if escaped {
 			switch char {
-			case 'b', 'f', 'n', 'r', 't', '\\', '"':
+			case 'b', 'f', 'n', 'r', 't', '\\', '/' ,'"':
 				escaped = false
 			default:
 				return Token{}, runes, fmt.Errorf("invalid escaped character '\\%s' at line %d, col %d", string(char), lineNo, i+colNo)
