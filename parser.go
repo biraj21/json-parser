@@ -45,6 +45,8 @@ func parseObject(tokens []Token) ([]Token, error) {
 		return tokens[1:], nil
 	}
 
+	keys := map[string]struct{}{}
+
 	const (
 		checkKey   = iota
 		checkColon = iota
@@ -62,6 +64,13 @@ func parseObject(tokens []Token) ([]Token, error) {
 			if token.kind != JsonString {
 				return []Token{}, unexpectedTokenError(token)
 			}
+
+			_, ok := keys[token.value]
+			if ok {
+				fmt.Printf("warning: duplicate object key '%s' at line %d, col %d\n", token.value, token.lineNo, token.colNo)
+			}
+
+			keys[token.value] = struct{}{}
 
 			tokens = tokens[1:]
 			check = checkColon
