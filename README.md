@@ -57,4 +57,8 @@ go run . FILE
 
 ### Acknowledgements
 
-I didn't know how to get started with this cuz I had no idea on how to implement a Lexer & Parser. [@eatonphil](https://github.com/eatonphil)'s [blog post](https://notes.eatonphil.com/writing-a-simple-json-parser.html) on the topic helped me a lot. Do check it out!
+- I didn't know how to get started with this cuz I had no idea on how to implement a Lexer & Parser. [@eatonphil](https://github.com/eatonphil)'s [blog post](https://notes.eatonphil.com/writing-a-simple-json-parser.html) on the topic helped me a lot. Do check it out!
+
+- Told my friend [Prashanth](https://github.com/prashanthkumar0) to break the program. He helped me by finding two issues:
+  1. no warning for duplicate keys (fixed)
+  2. failing to handle negative numbers (fixed)
