@@ -148,7 +148,7 @@ func lexNumber(runes []rune, lineNo, colNo int) (Token, []rune, error) {
 	}
 
 	tokenValue := string(runes[:endsAt+1])
-	if !regexp.MustCompile(`^-?\d+(?:\.\d+)?(?:(e|E)-?\+?\d+)?$`).MatchString(tokenValue) {
+	if !regexp.MustCompile(`^-?\d+(?:\.\d+)?(?:[eE][\-+]?\d+)?$`).MatchString(tokenValue) {
 		return Token{}, runes, fmt.Errorf("invalid number %s", tokenValue)
 	}
 
