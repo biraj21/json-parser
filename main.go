@@ -23,7 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = Parse(tokens)
+	_, err = Parse(tokens)
 	if err != nil {
 		log.Fatal(err)
 	}
