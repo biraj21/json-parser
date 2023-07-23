@@ -16,9 +16,17 @@ func TestParseValidJson(t *testing.T) {
     "key-l": ["list value"]
   }`
 
+	expectedJson := map[string]any{
+		"key":   "value",
+		"key-n": 101.0,
+		"key-o": map[string]any{"inner key": "inner value"},
+		"key-l": []any{"list value"},
+	}
+
 	tokens, err := Lex(validJson)
 	assert.Equal(t, err, nil)
 
-	err = Parse(tokens)
-	assert.Equal(t, err, nil)
+	json, err := Parse(tokens)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedJson, json)
 }
