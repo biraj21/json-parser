@@ -18,12 +18,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	tokens, err := Lex(string(contents))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = Parse(tokens)
+	_, err = Deserialize(string(contents))
 	if err != nil {
 		log.Fatal(err)
 	}
